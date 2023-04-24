@@ -15,6 +15,9 @@ import openpyxl as workbook
 import os
 import win32com.client as win32
 import re
+from bs4 import BeautifulSoup
+
+
 df = pd.read_excel("Consulta_SDPWIN.xlsx")
  
 # Tratando o arquivo importado .xlsx
@@ -37,7 +40,16 @@ print(df_ajustado)
 navegador = webdriver.Chrome()
 
 # Acessando o Site Fazendo
-navegador.get("https://cpag.prf.gov.br/nada_consta/index.jsf ")
+navegador.get("https://cpag.prf.gov.br/nada_consta/index.jsf")
+
+placa_input = navegador.find_element(By.ID, "formConsultarExterno:placa")
+sleep(3)
+renavam_input = navegador.find_element(By.ID, "formConsultarExterno:renavam")
+sleep(3)
+placa_input.clear()
+renavam_input.clear()
+placa_input.send_keys("FAT6J05")
+renavam_input.send_keys("1272775590")
 
 chave_capctcha = navegador.find_element(By.ID,'captcha').get_attribute('data-sitekey')
 
@@ -45,57 +57,46 @@ chave_capctcha = navegador.find_element(By.ID,'captcha').get_attribute('data-sit
 solver = recaptchaV2Proxyless ()
 solver.set_verbose(1)
 solver.set_key(chave_api)
-solver.set_website_url("https://cpag.prf.gov.br/nada_consta/index.jsf ")
+solver.set_website_url("https://cpag.prf.gov.br/nada_consta/index.jsf")
 solver.set_website_key(chave_capctcha)
 
+
 resposta=solver.solve_and_return_solution()
+
+navegador.execute_script(f"document.getElementById('g-recaptcha-response').value='{resposta}'")
+elemento = navegador.find_element(By.XPATH,'//a[@onclick="mojarra.jsfcljs(document.getElementById(\'formConsultarExterno\'),{\'formConsultarExterno:j_idt72\':\'formConsultarExterno:j_idt72\'},\'\');return false"]')
+
+# Execute o código JavaScript associado ao atributo onclick
+navegador.execute_script(elemento.get_attribute('onclick'))
+html = '<div class="ui-dialog-content ui-widget-content" style="height: auto;"><ul id="formConsultarExterno:msgErro" class="msgErro"><li>	Placa ou RENAVAM não conferem. </li></ul></div>'
+soup = BeautifulSoup(html, 'html.parser')
+li_tag = soup.find('li')
+texto = li_tag.get_text(strip=True)
+resultado = texto
+
+
+if texto == 'Placa ou RENAVAM não conferem.':
+    sleep(3)
+    #formConsultarExterno:j_idt57
+    navegador.find_element(By.ID,'formConsultarExterno:j_idt57').click()
+
+
+else:
+    print('Caso Encontrado.')
+
+
+
+print(resultado)
+sleep(5)
+
+
 
 if resposta != 0:
     print(resposta)
     #preencher o campo do token do captcha
     #g-recaptcha-response
     #conteudoPaginaPlaceHolder_btn_Consultar
-    
-    navegador.execute_script(f"document.getElementById('g-recaptcha-response').value='{resposta}'")
 else:
     print(solver.err_string)    
 
 sleep(4)
-
-# Iterando informações sobre a coluna "Placa" "Renavam" e enviando cada valor individualmente(por linha matriz)
-for placa, renavam in zip(df_ajustado['Placa'], df_ajustado['Renavam']):
-    sleep(3)
-    try:
-        placa_input = navegador.find_element(By.ID, "formConsultarExterno:placa")
-        sleep(3)
-        renavam_input = navegador.find_element(By.ID, "formConsultarExterno:renavam")
-        sleep(3)
-        placa_input.clear()
-        renavam_input.clear()
-        placa_input.send_keys(placa)
-        renavam_input.send_keys(renavam)
-        chave_capctcha = navegador.find_element(By.ID,'captcha').get_attribute('data-sitekey')
-        solver = recaptchaV2Proxyless ()
-        solver.set_verbose(1)
-        solver.set_key(chave_api)
-        solver.set_website_url("https://cpag.prf.gov.br/nada_consta/index.jsf")
-        solver.set_website_key(chave_capctcha)
-        resposta=solver.solve_and_return_solution()
-        navegador.execute_script(f"document.getElementById('g-recaptcha-response').value='{resposta}'")
-        elemento = navegador.find_element(By.XPATH,'//a[@onclick="mojarra.jsfcljs(document.getElementById(\'formConsultarExterno\'),{\'formConsultarExterno:j_idt72\':\'formConsultarExterno:j_idt72\'},\'\');return false"]')
-        
-        #Execute o código JavaScript associado ao atributo onclick
-        navegador.execute_script(elemento.get_attribute('onclick'))
-        sleep(30)
-        navegador.get("https://cpag.prf.gov.br/nada_consta/index.jsf ")
-
-        # Aguardar o carregamento dos resultados da busca
-        #WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "ID_DO_ELEMENTO_DOS_RESULTADOS_DA_BUSCA")))
-        
-        # Adicione aqui o código para capturar os resultados da busca e fazer o que for necessário com eles
-        
-    except Exception as e:
-        print(f"Ocorreu um erro: {e}. Reiniciando o loop.")
-        navegador.refresh()
-        continue
-

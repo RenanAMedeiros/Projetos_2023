@@ -37,15 +37,15 @@ print(df_ajustado)
 navegador = webdriver.Chrome()
 
 # Acessando o Site Fazendo
-navegador.get("https://cpag.prf.gov.br/nada_consta/index.jsf ")
+navegador.get("https://www.ipva.fazenda.sp.gov.br/ipvanet_consulta/consulta.aspx")
 
-chave_capctcha = navegador.find_element(By.ID,'captcha').get_attribute('data-sitekey')
+chave_capctcha = navegador.find_element(By.ID,'conteudoPaginaPlaceHolder_g_recaptcha').get_attribute('data-sitekey')
 
 
 solver = recaptchaV2Proxyless ()
 solver.set_verbose(1)
 solver.set_key(chave_api)
-solver.set_website_url("https://cpag.prf.gov.br/nada_consta/index.jsf ")
+solver.set_website_url("https://www.ipva.fazenda.sp.gov.br/ipvanet_consulta/consulta.aspx")
 solver.set_website_key(chave_capctcha)
 
 resposta=solver.solve_and_return_solution()
@@ -66,28 +66,25 @@ sleep(4)
 for placa, renavam in zip(df_ajustado['Placa'], df_ajustado['Renavam']):
     sleep(3)
     try:
-        placa_input = navegador.find_element(By.ID, "formConsultarExterno:placa")
+        placa_input = navegador.find_element(By.ID, "conteudoPaginaPlaceHolder_txtPlaca")
         sleep(3)
-        renavam_input = navegador.find_element(By.ID, "formConsultarExterno:renavam")
+        renavam_input = navegador.find_element(By.ID, "conteudoPaginaPlaceHolder_txtRenavam")
         sleep(3)
         placa_input.clear()
         renavam_input.clear()
         placa_input.send_keys(placa)
         renavam_input.send_keys(renavam)
-        chave_capctcha = navegador.find_element(By.ID,'captcha').get_attribute('data-sitekey')
+        chave_capctcha = navegador.find_element(By.ID,'conteudoPaginaPlaceHolder_g_recaptcha').get_attribute('data-sitekey')
         solver = recaptchaV2Proxyless ()
         solver.set_verbose(1)
         solver.set_key(chave_api)
-        solver.set_website_url("https://cpag.prf.gov.br/nada_consta/index.jsf")
+        solver.set_website_url("https://www.ipva.fazenda.sp.gov.br/ipvanet_consulta/consulta.aspx")
         solver.set_website_key(chave_capctcha)
         resposta=solver.solve_and_return_solution()
         navegador.execute_script(f"document.getElementById('g-recaptcha-response').value='{resposta}'")
-        elemento = navegador.find_element(By.XPATH,'//a[@onclick="mojarra.jsfcljs(document.getElementById(\'formConsultarExterno\'),{\'formConsultarExterno:j_idt72\':\'formConsultarExterno:j_idt72\'},\'\');return false"]')
-        
-        #Execute o código JavaScript associado ao atributo onclick
-        navegador.execute_script(elemento.get_attribute('onclick'))
-        sleep(30)
-        navegador.get("https://cpag.prf.gov.br/nada_consta/index.jsf ")
+        navegador.find_element(By.ID,'conteudoPaginaPlaceHolder_btn_Consultar').click()
+        sleep(120)
+        navegador.get("https://www.ipva.fazenda.sp.gov.br/ipvanet_consulta/consulta.aspx")
 
         # Aguardar o carregamento dos resultados da busca
         #WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "ID_DO_ELEMENTO_DOS_RESULTADOS_DA_BUSCA")))
